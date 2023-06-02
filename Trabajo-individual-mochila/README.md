@@ -1,0 +1,3 @@
+# El problema de la mochila
+
+Aquí vamos a paralelizar una solución al problema de la mochila basada en búsqueda local, específicamente, búsqueda local de vecindad variable (k-flips). Partimos de una implementación en Python hecha por un usuario de GitHub. Vamos a explo9rar la organización de las partes de la solución a la luz del algoritmo general, luego la vamos a refactorizar si es necesario, y finalmente la paralelizaremos.
