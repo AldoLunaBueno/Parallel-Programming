@@ -1,4 +1,5 @@
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -11,14 +12,14 @@ public class SynchronizedQueue {
     private static Double DATASET[][] = new Double[N+1][n+m+1];
     //----------------------------------------------------------------
     public static void main(String[] args) {
-        BlockingQueue<Map.Entry<Double[],Double[]>> REQUEST  = new LinkedBlockingQueue<>();
-        BlockingQueue<Result>  RESPONSE = new LinkedBlockingQueue<>();
+        BlockingQueue<Map.Entry<Integer[],Double[][]>> REQUEST = new LinkedBlockingQueue<>();
+        BlockingQueue<Result> RESPONSE = new LinkedBlockingQueue<>();
 
         cargarDatos();
         visualizarDatos();
 
 
-        //Ejemplo de perturbacion a los datos
+        //Ejemplo de perturbación a los datos
         //---------------------------------------
         for(int i=1;i<=N;i++)  {
             DATASET[i][1] = DATASET[i][2] +
@@ -29,15 +30,16 @@ public class SynchronizedQueue {
         Operation OBJ = new Operation(REQUEST,RESPONSE);
         OBJ.start();
 
-        REQUEST.put(new AbstractMap.SimpleEntry<>(getColumn(DATASET, 1), getColumn(DATASET, 2)));
-        RESPONSE.take();
-
-        /*
         try {
-            for (int i = 0; i < 10; i++) {
-                REQUEST.put(123458);
+
+            int count = 1;
+            for(int h=1;h<=n-1;h++)  {
+                for(int k=h+1;k<=n;k++)  {
+                    REQUEST.put(new AbstractMap.SimpleEntry<>(new Integer[]{h,k}, getTwoColumns(DATASET, h, k)));
+                    count++;
+                }
             }
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < count; i++) {
                 System.out.println(RESPONSE.take());
             }
         }
@@ -45,7 +47,6 @@ public class SynchronizedQueue {
             ERROR.printStackTrace();
             System.out.println(ERROR);
         }
-        */
     }
     public static void visualizarDatos() {
         for(int i=1;i<=N;i++)  {
@@ -71,61 +72,38 @@ public class SynchronizedQueue {
             }
         }
         for(int i=1;i<=N;i++)  {
-            DATASET[i][n+m] = 1 + 1.0*(int)(Math.random()*3); break; //CLASE
+            DATASET[i][n+m] = 1 + 1.0*(int)(Math.random()*3); //CLASE
         }
     }
-    public static double[] getColumn(double[][] array, int index){
-        double[] column = new double[array[0].length];
-        for(int i=0; i<column.length; i++){
-            column[i] = array[i][index];
+    public static Double[][] getTwoColumns(Double[][] array, int index0, int index1){
+        Double[][] columns = new Double[array[0].length][2];
+        for(int i=0; i<columns.length; i++){
+            columns[i][0] = array[i][index0];
+            columns[i][1] = array[i][index1];
         }
-        return column;
+        return columns;
     }
 }
 //====================================================================
 class Operation {
-    private final BlockingQueue<Map.Entry<Double[],Double[]>> IN;
+    private final BlockingQueue<Map.Entry<Integer[],Double[][]>> IN;
     private final BlockingQueue<Result>  OUT;
 
-
-    private static final int N=100; // Tamaño de la muestra
-    private static final int n=5; // Tamaño de la entrada
-    private static final int m=1; // Tamaño de la salida
-
-    private static double DATASET[][] = new double[N+1][n+m+1];
-
     //----------------------------------------------------------------
-    public Operation(BlockingQueue<Map.Entry<Double[],Double[]>> REQUEST, BlockingQueue<Result> RESPONSE) {
+    public Operation(BlockingQueue<Map.Entry<Integer[],Double[][]>> REQUEST, BlockingQueue<Result> RESPONSE) {
         this.IN  = REQUEST;
         this.OUT = RESPONSE;
     }
     public void start() {
-        /*
         new Thread(new Runnable() {
             public void run() {
-            int A,B;
-                while (true) {
-                    try {
-                        A  = IN.take();
-                        B = SumDivisors (A);
-                        OUT.put(new Result(A,B));
-                    }
-                    catch (InterruptedException ERROR) {
-                        ERROR.printStackTrace();
-                    }
-                }
-            }
-        }).start();
-        */
-        new Thread(new Runnable() {
-            public void run() {
-                Map.Entry<Double[],Double[]> A;
+                Map.Entry<Integer[],Double[][]> A;
                 Double B;
                 while (true) {
                     try {
                         A = IN.take();
-                        B = dependenciaLineal(A);
-                        OUT.put(new Result(A,B));
+                        B = dependenciaLineal(A.getValue());
+                        OUT.put(new Result(A.getKey(),B));
                     }
                     catch (InterruptedException ERROR) {
                         ERROR.printStackTrace();
@@ -134,34 +112,31 @@ class Operation {
             }
         }).start();
     }
-    public static Double dependenciaLineal(Map.Entry<Double[],Double[]> cols) {
+    public static Double dependenciaLineal(Double[][] twoColsReceived) {
         double T;
-
-        for(int h=1;h<=n-1;h++)  {
-            for(int k=h+1;k<=n;k++)  {
-                T = pearson(h,k);
-                System.out.println("Col " + h + " ~ Col " + k + " ==>  Pearson: " + T + "   Error: " + (1-T) );
-            }
-        }
+        T = pearson(twoColsReceived);
+        return T;
     }
-    public static double pearson(int h, int k) {
-        return innerProd(h,k)/(norma(h)* norma(k));
+    public static double pearson(Double[][] twoColsReceived) {
+        return innerProd(twoColsReceived)/(norma(twoColsReceived, 0)* norma(twoColsReceived, 1));
     }
     //------------------------------------------------
-    public static double norma(int j) {
+    public static double norma(Double[][] twoColsReceived, int j) {
         double S;
         S = 0;
+        int N = twoColsReceived[0].length;
         for(int i=1;i<=N;i++)  {
-            S = S + Math.pow(DATASET[i][j],2);
+            S = S + Math.pow(twoColsReceived[i][j],2);
         }
         return Math.sqrt(S);
     }
     //------------------------------------------------
-    public static double innerProd(int h, int k) {
+    public static double innerProd(Double[][] twoColsReceived) {
         double S;
         S = 0;
+        int N = twoColsReceived[0].length;
         for(int i=1;i<=N;i++)  {
-            S = S + DATASET[i][h]*DATASET[i][k];
+            S = S + twoColsReceived[i][0]*twoColsReceived[i][1];
         }
         return S;
     }
@@ -169,16 +144,16 @@ class Operation {
 }
 //====================================================================
 class Result {
-    private final int IN;
-    private final int OUT;
+    private final Integer[] IN;
+    private final Double OUT;
     //----------------------------------------------------------------
-    public Result(int A, int B) {
+    public Result(Integer[] A, Double B) {
         this.IN  = A;
         this.OUT = B;
     }
     //----------------------------------------------------------------
     @Override public String toString() {
-        return "\nSuma de Divisores de " + IN + ": " + OUT;
+        return "Col " + IN[0] + " ~ Col " + IN[1] + " ==>  Pearson: " + OUT + "   Error: " + (1-OUT);
     }
 }
 //====================================================================

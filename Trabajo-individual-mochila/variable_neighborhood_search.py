@@ -16,7 +16,7 @@ import common_functions as cf
 #-------------
 
 now = datetime.now()
-log_fname = "log_files/vns_"+now.strftime("%m%d_%H%M")+".log"
+log_fname = "log_files-vns_"+now.strftime("%m%d_%H%M")+".log"
 LOG_FORMAT = "%(lineno)d %(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig(filename=log_fname,
                     level=logging.DEBUG,
